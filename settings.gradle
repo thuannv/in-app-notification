@@ -1,0 +1,3 @@
+include ':inappnotification'
+include ':app'
+rootProject.name = "InAppNotificationView"
