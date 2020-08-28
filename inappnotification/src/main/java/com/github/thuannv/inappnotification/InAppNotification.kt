@@ -6,6 +6,8 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
+import android.os.Handler
+import android.os.Looper
 import android.view.*
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
@@ -30,6 +32,8 @@ class InAppNotification @JvmOverloads private constructor(
 
     private var swipeListener: SwipeListener? = null
 
+    private val uiHandler = Handler(Looper.getMainLooper())
+
     init {
         touchListener = TouchHandler(this)
         gestureDetector = GestureDetector(context, FlingGestureListener(this))
@@ -53,16 +57,33 @@ class InAppNotification @JvmOverloads private constructor(
         }
     }
 
+    private fun computeFlags(flags: Int): Int {
+        var computedFlags = flags and (
+                WindowManager.LayoutParams.FLAG_IGNORE_CHEEK_PRESSES or
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                        WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM or
+                        WindowManager.LayoutParams.FLAG_SPLIT_TOUCH
+                ).inv()
+
+        return computedFlags or
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+    }
+
     private fun computeLayoutParams(): WindowManager.LayoutParams {
         val wParams = WindowManager.LayoutParams()
-        wParams.x = 0
+        wParams.x = params.x
         wParams.y = 0
         wParams.width = WindowManager.LayoutParams.MATCH_PARENT
         wParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-        wParams.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        wParams.type = WindowManager.LayoutParams.TYPE_APPLICATION
+        wParams.gravity = Gravity.TOP or Gravity.START
+        wParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL
         wParams.format = PixelFormat.TRANSLUCENT
-        wParams.flags = wParams.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+        wParams.token = params.contentView?.applicationWindowToken
+        wParams.flags = computeFlags(wParams.flags)
         return wParams
     }
 
@@ -82,23 +103,24 @@ class InAppNotification @JvmOverloads private constructor(
     fun dismiss() = windowManager().safelyRemoveView(this)
 
     fun show() {
-        post {
-            visibility = INVISIBLE
-            val wParams = computeLayoutParams()
+        val view = this
+        uiHandler.post {
+            val wmParams = computeLayoutParams()
             val wm = windowManager()
-            wm.safelyAddView(this, wParams)
+            wm.safelyAddView(view, wmParams)
+            view.visibility = INVISIBLE
             if (!isAnimating) {
                 isAnimating = true
-                val animator = ValueAnimator.ofInt(0, dp(56f))
-                animator.duration = params.animationDuration
-                animator.interpolator = AccelerateDecelerateInterpolator()
+                val animator = ValueAnimator.ofInt(0, params.y)
+                animator.duration = params.enterAnimationDuration
+                animator.interpolator = AccelerateInterpolator()
                 animator.addUpdateListener {
-                    wParams.y = it.animatedValue as Int
-                    wm.safelyUpdateView(this, wParams)
+                    wmParams.y = it.animatedValue as Int
+                    wm.safelyUpdateView(view, wmParams)
                 }
                 animator.addListener(object: AnimatorListenerAdapter() {
                     override fun onAnimationStart(animation: Animator?) {
-                        visibility = VISIBLE
+                        view.visibility = VISIBLE
                     }
                     override fun onAnimationEnd(animation: Animator?) {
                         isAnimating = false
@@ -110,11 +132,11 @@ class InAppNotification @JvmOverloads private constructor(
     }
 
     fun exitToLeft() {
-        post {
+        uiHandler.post {
             if (!isAnimating) {
                 isAnimating = true
                 val animation = animate()
-                animation.duration = 100
+                animation.duration = params.exitAnimationDuration
                 animation.translationX(-0.6f * width)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
@@ -127,10 +149,10 @@ class InAppNotification @JvmOverloads private constructor(
     }
 
     fun exitToRight() {
-        post {
+        uiHandler.post {
             if (!isAnimating) {
                 val animation = animate()
-                animation.duration = params.animationDuration
+                animation.duration = params.exitAnimationDuration
                 animation.translationX(0.6f * width)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
@@ -144,10 +166,10 @@ class InAppNotification @JvmOverloads private constructor(
     }
 
     fun exitToTop() {
-        post {
+        uiHandler.post {
             if (!isAnimating) {
                 val animation = animate()
-                animation.duration = params.animationDuration
+                animation.duration = params.exitAnimationDuration
                 animation.translationY(-0.6f * height)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
@@ -180,11 +202,17 @@ class InAppNotification @JvmOverloads private constructor(
             this.params.swipeListener = swipeListener
         }
 
-        fun animationDuration(duration: Long) = apply { params.animationDuration = if (duration > 0) duration else 100L  }
+        fun exitAnimationDuration(duration: Long) = apply { params.exitAnimationDuration = if (duration > 0) duration else 100L  }
+
+        fun enterAnimationDuration(duration: Long) = apply { params.enterAnimationDuration = if (duration > 0) duration else 150L  }
+
+        fun x(x: Int) = apply { params.x = x }
+
+        fun y(y: Int) = apply { params.y = y }
 
         fun build(): InAppNotification {
-            if (params.contentView == null && params.contentViewLayoutRes == 0) {
-                throw IllegalArgumentException("ContentView was not set properly")
+            if (params.contentView == null && params.contentViewLayoutRes == 0 ) {
+                throw IllegalArgumentException("ContentView was not set")
             }
             return InAppNotification(context, params)
         }

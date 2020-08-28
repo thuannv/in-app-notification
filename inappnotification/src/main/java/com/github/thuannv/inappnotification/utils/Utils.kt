@@ -7,7 +7,7 @@ import android.util.TypedValue
 import android.view.View
 import android.view.WindowManager
 
-fun Context.windowManager() = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+fun Context.windowManager() =  getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
 fun Context.dp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics).toInt()
 

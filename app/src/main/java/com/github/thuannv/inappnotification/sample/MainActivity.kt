@@ -5,6 +5,7 @@ import android.os.Bundle
 import com.github.thuannv.inappnotification.Direction
 import com.github.thuannv.inappnotification.InAppNotification
 import com.github.thuannv.inappnotification.SwipeListener
+import com.github.thuannv.inappnotification.utils.dp
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -15,10 +16,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        val statusBarHeight = dp(24f)
+        val actionbarHeight = actionBar?.height ?: dp(56f)
         button_toggle_view.setOnClickListener {
             if (notification == null) {
                 notification = InAppNotification.Builder(this)
+                    .x(0)
+                    .y(statusBarHeight + actionbarHeight)
                     .contentView(R.layout.layout_notification)
+                    .enterAnimationDuration(50)
+                    .exitAnimationDuration(100)
                     .swipeListener(object: SwipeListener {
                         override fun onSwipe(direction: Direction) {
                             when (direction) {
