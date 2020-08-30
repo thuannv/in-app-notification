@@ -2,6 +2,7 @@ package com.github.thuannv.inappnotification
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
@@ -105,24 +106,29 @@ class InAppNotification @JvmOverloads private constructor(
     fun show() {
         val view = this
         uiHandler.post {
-            val wmParams = computeLayoutParams()
-            val wm = windowManager()
-            wm.safelyAddView(view, wmParams)
             view.visibility = INVISIBLE
+            val wm = windowManager()
+            wm.safelyAddView(view, computeLayoutParams())
             if (!isAnimating) {
                 isAnimating = true
                 val animator = ValueAnimator.ofInt(0, params.y)
                 animator.duration = params.enterAnimationDuration
-                animator.interpolator = AccelerateInterpolator()
+                animator.interpolator = AccelerateDecelerateInterpolator()
                 animator.addUpdateListener {
-                    wmParams.y = it.animatedValue as Int
+                    val y = it.animatedValue as Int
+                    view.alpha = 1.0f * y / params.y
+
+                    val wmParams = view.layoutParams as WindowManager.LayoutParams
+                    wmParams.y = y
                     wm.safelyUpdateView(view, wmParams)
                 }
                 animator.addListener(object: AnimatorListenerAdapter() {
                     override fun onAnimationStart(animation: Animator?) {
+                        view.alpha = 0.25f
                         view.visibility = VISIBLE
                     }
                     override fun onAnimationEnd(animation: Animator?) {
+                        view.alpha = 1.0f
                         isAnimating = false
                     }
                 })
@@ -138,6 +144,7 @@ class InAppNotification @JvmOverloads private constructor(
                 val animation = animate()
                 animation.duration = params.exitAnimationDuration
                 animation.translationX(-0.6f * width)
+                animation.alpha(0.25f)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
                     dismiss()
@@ -154,6 +161,7 @@ class InAppNotification @JvmOverloads private constructor(
                 val animation = animate()
                 animation.duration = params.exitAnimationDuration
                 animation.translationX(0.6f * width)
+                animation.alpha(0.25f)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
                     dismiss()
@@ -171,6 +179,7 @@ class InAppNotification @JvmOverloads private constructor(
                 val animation = animate()
                 animation.duration = params.exitAnimationDuration
                 animation.translationY(-0.6f * height)
+                animation.alpha(0.25f)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
                     dismiss()

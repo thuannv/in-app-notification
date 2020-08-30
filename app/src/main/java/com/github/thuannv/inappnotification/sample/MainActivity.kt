@@ -1,7 +1,7 @@
 package com.github.thuannv.inappnotification.sample
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import com.github.thuannv.inappnotification.Direction
 import com.github.thuannv.inappnotification.InAppNotification
 import com.github.thuannv.inappnotification.SwipeListener
@@ -16,7 +16,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val statusBarHeight = dp(24f)
+        var statusBarHeight = dp(24f)
+        val idStatusBarHeight = resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (idStatusBarHeight > 0) {
+            statusBarHeight = resources.getDimensionPixelSize(idStatusBarHeight)
+        }
+
         val actionbarHeight = actionBar?.height ?: dp(56f)
         button_toggle_view.setOnClickListener {
             if (notification == null) {
@@ -24,9 +29,9 @@ class MainActivity : AppCompatActivity() {
                     .x(0)
                     .y(statusBarHeight + actionbarHeight)
                     .contentView(R.layout.layout_notification)
-                    .enterAnimationDuration(50)
-                    .exitAnimationDuration(100)
-                    .swipeListener(object: SwipeListener {
+                    .enterAnimationDuration(500)
+                    .exitAnimationDuration(250)
+                    .swipeListener(object : SwipeListener {
                         override fun onSwipe(direction: Direction) {
                             when (direction) {
                                 Direction.LEFT -> {
