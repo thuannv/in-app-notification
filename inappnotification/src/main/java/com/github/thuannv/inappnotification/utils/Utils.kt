@@ -5,10 +5,19 @@ package com.github.thuannv.inappnotification.utils
 import android.app.Activity
 import android.content.Context
 import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 
 fun Context.windowManager() =  getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+fun Context.layoutInflater(): LayoutInflater {
+    return if (this is Activity) {
+        this.layoutInflater
+    } else {
+        LayoutInflater.from(this)
+    }
+}
 
 fun Context.dp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics).toInt()
 
