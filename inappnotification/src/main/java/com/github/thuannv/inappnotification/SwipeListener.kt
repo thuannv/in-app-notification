@@ -2,5 +2,5 @@
 package com.github.thuannv.inappnotification
 
 interface SwipeListener {
-    fun onSwipe(direction: Direction)
+    fun onSwipe(swipeDirection: Direction)
 }

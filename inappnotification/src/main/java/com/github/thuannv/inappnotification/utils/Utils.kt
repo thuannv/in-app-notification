@@ -2,6 +2,7 @@
 @file:JvmName("Utils")
 package com.github.thuannv.inappnotification.utils
 
+import android.app.Activity
 import android.content.Context
 import android.util.TypedValue
 import android.view.View
@@ -10,6 +11,17 @@ import android.view.WindowManager
 fun Context.windowManager() =  getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
 fun Context.dp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics).toInt()
+
+fun Context.statusBarHeight(): Int {
+    var statusBarHeight = dp(24f)
+    val statusBarHeightResourceID = resources.getIdentifier("status_bar_height", "dimen", "android")
+    if (statusBarHeightResourceID > 0) {
+        statusBarHeight = resources.getDimensionPixelSize(statusBarHeightResourceID)
+    }
+    return statusBarHeight
+}
+
+fun Activity.actionBarHeight() = actionBar?.height ?: dp(56f)
 
 fun View.dp(value: Float) = context.dp(value)
 
