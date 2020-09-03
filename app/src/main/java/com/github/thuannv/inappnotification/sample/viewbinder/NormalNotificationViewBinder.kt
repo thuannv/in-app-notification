@@ -1,5 +1,6 @@
 package com.github.thuannv.inappnotification.sample.viewbinder
 
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -20,6 +21,7 @@ class NormalNotificationViewBinder(private val model: NormalNotificationModel) :
                     .override(dp(64f), dp(64f))
                     .into(this)
             }
+            setOnClickListener { Log.e("NormalNotification", "Clicked") }
         }
     }
 }

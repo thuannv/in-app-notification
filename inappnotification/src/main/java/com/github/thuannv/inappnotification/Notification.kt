@@ -19,6 +19,7 @@ import com.github.thuannv.inappnotification.utils.windowManager
 import java.lang.ref.WeakReference
 import kotlin.math.abs
 
+
 @SuppressLint("ViewConstructor")
 class Notification @JvmOverloads private constructor(
     context: Context,
@@ -26,6 +27,8 @@ class Notification @JvmOverloads private constructor(
 ) : FrameLayout(context) {
 
     private val gestureDetector: GestureDetector
+
+    private val tapDetector: TapDetector
 
     private val touchListener: OnTouchListener
 
@@ -38,8 +41,9 @@ class Notification @JvmOverloads private constructor(
     private val uiHandler = Handler(Looper.getMainLooper())
 
     init {
-        touchListener = TouchHandler(this)
+        tapDetector = TapDetector(ViewConfiguration.get(context).scaledTouchSlop)
         gestureDetector = GestureDetector(context, FlingGestureListener(this))
+        touchListener = TouchHandler(this)
         swipeListener = info.swipeListener
         setupView()
     }
@@ -61,7 +65,7 @@ class Notification @JvmOverloads private constructor(
     }
 
     private fun computeFlags(flags: Int): Int {
-        var computedFlags = flags and (
+        val computedFlags = flags and (
                 WindowManager.LayoutParams.FLAG_IGNORE_CHEEK_PRESSES or
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -127,11 +131,12 @@ class Notification @JvmOverloads private constructor(
                     wmParams.y = y
                     wm.safelyUpdateView(view, wmParams)
                 }
-                animator.addListener(object: AnimatorListenerAdapter() {
+                animator.addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationStart(animation: Animator?) {
                         view.alpha = 0.25f
                         view.visibility = VISIBLE
                     }
+
                     override fun onAnimationEnd(animation: Animator?) {
                         view.alpha = 1.0f
                         isAnimating = false
@@ -216,16 +221,18 @@ class Notification @JvmOverloads private constructor(
             this.info.swipeListener = swipeListener
         }
 
-        fun exitAnimationDuration(duration: Long) = apply { info.exitAnimationDuration = if (duration > 0) duration else 100L  }
+        fun exitAnimationDuration(duration: Long) =
+            apply { info.exitAnimationDuration = if (duration > 0) duration else 100L }
 
-        fun enterAnimationDuration(duration: Long) = apply { info.enterAnimationDuration = if (duration > 0) duration else 150L  }
+        fun enterAnimationDuration(duration: Long) =
+            apply { info.enterAnimationDuration = if (duration > 0) duration else 150L }
 
         fun x(x: Int) = apply { info.x = x }
 
         fun y(y: Int) = apply { info.y = y }
 
         fun build(): Notification {
-            if (info.contentView == null && info.contentViewLayoutRes == 0 ) {
+            if (info.contentView == null && info.contentViewLayoutRes == 0) {
                 throw IllegalArgumentException("ContentView was not set")
             }
             return Notification(context, info)
@@ -233,35 +240,12 @@ class Notification @JvmOverloads private constructor(
     }
 
     /**
-     * [TouchHandler]
-     */
-    private class TouchHandler : OnTouchListener {
-
-        private val ref: WeakReference<Notification>
-
-        constructor(notification: Notification) {
-            ref = WeakReference(notification)
-        }
-
-        override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-            return gestureDetector()?.onTouchEvent(event) ?: false
-        }
-
-        private fun gestureDetector(): GestureDetector? {
-            return ref.get()?.gestureDetector
-        }
-    }
-
-    /**
      * [FlingGestureListener]
      */
-    private class FlingGestureListener : GestureDetector.SimpleOnGestureListener {
+    private class FlingGestureListener(notification: Notification) :
+        GestureDetector.SimpleOnGestureListener() {
 
-        private val ref: WeakReference<Notification>
-
-        constructor(notification: Notification) : super() {
-            ref = WeakReference(notification)
-        }
+        private val ref: WeakReference<Notification> = WeakReference(notification)
 
         override fun onDown(e: MotionEvent?) = true
 
@@ -271,14 +255,96 @@ class Notification @JvmOverloads private constructor(
             velocityX: Float,
             velocityY: Float
         ): Boolean {
-            val view = ref.get() ?: return false;
+            val view = ref.get() ?: return false
             var swipeDirection: Direction = if (abs(velocityX) > abs(velocityY)) {
                 if (velocityX < 0) Direction.LEFT else Direction.RIGHT
             } else {
                 if (velocityY < 0) Direction.UP else Direction.DOWN
             }
-            view?.swipeListener?.onSwipe(swipeDirection)
+            view.swipeListener?.onSwipe(swipeDirection)
             return true
+        }
+    }
+
+    /**
+     * [TouchHandler]
+     */
+    private class TouchHandler(notification: Notification) : OnTouchListener {
+
+        private val ref: WeakReference<Notification> = WeakReference(notification)
+
+        override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+            val isTap = tapDetector()?.detect(event) ?: false
+            if (isTap) {
+                v?.performClick()
+                return true
+            }
+
+            val isFling = gestureDetector()?.onTouchEvent(event) ?: false
+            if (isFling) {
+                return true
+            }
+
+            return event?.let {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        false
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        false
+                    }
+                    else -> false
+                }
+            } ?: false
+        }
+
+        private fun gestureDetector() = ref.get()?.gestureDetector
+
+        private fun tapDetector() = ref.get()?.tapDetector
+    }
+
+    /**
+     * [TapDetector]
+     */
+    private class TapDetector(
+        val scaledTouchSlop: Int,
+        val tapTimeout: Int = ViewConfiguration.getTapTimeout()
+    ) {
+
+        private var prevX = INVALID_POSITION
+
+        private var prevY = INVALID_POSITION
+
+        private var prevTouchTimeMillis: Long = 0
+
+        fun detect(event: MotionEvent?): Boolean {
+            return event?.let {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        prevX = event.rawX.toInt()
+                        prevY = event.rawY.toInt()
+                        prevTouchTimeMillis = System.currentTimeMillis()
+                        false
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        if (System.currentTimeMillis() - prevTouchTimeMillis <= tapTimeout) {
+                            val dx = event.rawX.toInt() - prevX
+                            val dy = event.rawY.toInt() - prevY
+                            abs(dx) <= scaledTouchSlop && abs(dy) <= scaledTouchSlop
+                        } else {
+                            false
+                        }
+                    }
+                    else -> false
+                }
+            } ?: false
+        }
+
+        companion object {
+            const val INVALID_POSITION: Int = -1
         }
     }
 }

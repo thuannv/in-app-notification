@@ -1,5 +1,6 @@
 package com.github.thuannv.inappnotification.sample.viewbinder
 
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -21,6 +22,7 @@ class NotificationWithTimeViewBinder(private val model: NotificationWithTimeMode
                     .override(dp(64f), dp(64f))
                     .into(this)
             }
+            setOnClickListener { Log.e("TimNotification", "Clicked") }
         }
     }
 }
