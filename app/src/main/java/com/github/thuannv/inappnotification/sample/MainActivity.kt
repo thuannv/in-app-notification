@@ -1,9 +1,12 @@
 package com.github.thuannv.inappnotification.sample
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
 import com.github.thuannv.inappnotification.Direction
 import com.github.thuannv.inappnotification.Notification
 import kotlinx.android.synthetic.main.activity_main.*
@@ -11,6 +14,8 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
 //    private var notification: Notification? = null
+
+    private var depth: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,19 +62,32 @@ class MainActivity : AppCompatActivity() {
 //            }
 //        }
 
-
+        depth = intent.getIntExtra(DEPTH, 0)
 
         val contentView = layoutInflater.inflate(
             R.layout.layout_notification,
             window.decorView as ViewGroup,
-            false)
+            false
+        )
 
         button_toggle_view.setOnClickListener {
-            if (NotificationManager.current() == null) {
-                NotificationManager.notify(contentView)
+//            if (NotificationManager.current() == null) {
+//                NotificationManager.notify(contentView)
+//            } else {
+//                NotificationManager.dismiss(Direction.RIGHT)
+//            }
+            if (depth < MAX_ACTIVITY) {
+                val intent = Intent(this, MainActivity::class.java)
+                intent.putExtra(DEPTH, depth + 1)
+                startActivity(intent)
             } else {
-                NotificationManager.dismiss(Direction.RIGHT)
+                finish()
             }
         }
+    }
+
+    companion object {
+        const val DEPTH = "depth"
+        const val MAX_ACTIVITY = 5
     }
 }
