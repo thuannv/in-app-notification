@@ -1,6 +1,7 @@
 package com.github.thuannv.inappnotification.sample.viewbinder
 
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -26,6 +27,17 @@ class NotificationWithTimeViewBinder(private val model: NotificationWithTimeMode
             setOnLongClickListener {
                 Log.e("TimNotification", "Long Clicked")
                 true
+            }
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_UP -> {
+                        Log.e("TimNotification", "up")
+                    }
+                    MotionEvent.ACTION_DOWN -> {
+                        Log.e("TimNotification", "down")
+                    }
+                }
+                false
             }
         }
     }

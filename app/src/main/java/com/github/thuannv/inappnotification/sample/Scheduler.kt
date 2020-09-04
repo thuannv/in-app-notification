@@ -68,7 +68,7 @@ object Scheduler {
                 NotificationManager.notify(contentView)
                 task?.apply {
 //                    handler.postDelayed(this, random.nextInt(5000).toLong())
-                    handler.postDelayed(this, 10000L)
+//                    handler.postDelayed(this, 10000L)
                 }
             }
             task?.apply { handler.post(this) }

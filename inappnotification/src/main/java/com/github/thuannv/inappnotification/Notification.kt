@@ -185,6 +185,7 @@ class Notification @JvmOverloads private constructor(
                             Direction.LEFT -> exitToLeft()
                             Direction.RIGHT -> exitToRight()
                             Direction.UP -> exitToTop()
+                            Direction.DOWN -> backToStart()
                             else -> {}
                         }
                         resetState()
@@ -289,6 +290,7 @@ class Notification @JvmOverloads private constructor(
     fun exitToRight() {
         uiHandler.post {
             if (!isAnimating) {
+                isAnimating = true
                 val animation = animate()
                 animation.duration = info.exitAnimationDuration
                 animation.translationX(0.6f * width)
@@ -307,6 +309,7 @@ class Notification @JvmOverloads private constructor(
     fun exitToTop() {
         uiHandler.post {
             if (!isAnimating) {
+                isAnimating = true
                 val animation = animate()
                 animation.duration = info.exitAnimationDuration
                 animation.translationY(-0.6f * height)
@@ -314,6 +317,22 @@ class Notification @JvmOverloads private constructor(
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
                     dismiss()
+                    isAnimating = false
+                }
+                animation.start()
+            }
+        }
+    }
+
+    private fun backToStart() {
+        uiHandler.post {
+            if (!isAnimating) {
+                isAnimating = true
+                val animation = animate()
+                animation.duration = info.exitAnimationDuration
+                animation.translationX(0f)
+                animation.interpolator = AccelerateInterpolator()
+                animation.withEndAction {
                     isAnimating = false
                 }
                 animation.start()
