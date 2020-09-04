@@ -22,6 +22,10 @@ class BigNotificationViewBinder(private val model: BigNotificationModel) :
                     .into(this)
             }
             setOnClickListener { Log.e("BigNotification", "Clicked") }
+            setOnLongClickListener {
+                Log.e("BigNotification", "Long Clicked")
+                true
+            }
         }
     }
 }

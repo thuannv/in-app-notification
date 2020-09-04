@@ -23,6 +23,10 @@ class NotificationWithTimeViewBinder(private val model: NotificationWithTimeMode
                     .into(this)
             }
             setOnClickListener { Log.e("TimNotification", "Clicked") }
+            setOnLongClickListener {
+                Log.e("TimNotification", "Long Clicked")
+                true
+            }
         }
     }
 }

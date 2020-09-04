@@ -22,6 +22,10 @@ class NormalNotificationViewBinder(private val model: NormalNotificationModel) :
                     .into(this)
             }
             setOnClickListener { Log.e("NormalNotification", "Clicked") }
+            setOnLongClickListener {
+                Log.e("NormalNotification", "Long Clicked")
+                true
+            }
         }
     }
 }

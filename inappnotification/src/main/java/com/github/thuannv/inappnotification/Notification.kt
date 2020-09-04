@@ -16,7 +16,6 @@ import com.github.thuannv.inappnotification.utils.safelyAddView
 import com.github.thuannv.inappnotification.utils.safelyRemoveView
 import com.github.thuannv.inappnotification.utils.safelyUpdateView
 import com.github.thuannv.inappnotification.utils.windowManager
-import java.lang.ref.WeakReference
 import kotlin.math.abs
 
 
@@ -26,11 +25,7 @@ class Notification @JvmOverloads private constructor(
     private val info: NotificationInfo
 ) : FrameLayout(context) {
 
-    private val gestureDetector: GestureDetector
-
-    private val tapDetector: TapDetector
-
-    private val touchListener: OnTouchListener
+//    private val gestureDetector: GestureDetector
 
     private var isAnimating = false
 
@@ -40,10 +35,32 @@ class Notification @JvmOverloads private constructor(
 
     private val uiHandler = Handler(Looper.getMainLooper())
 
+    private var isScrolling = false
+
+    private var prevEventX = -1f
+
+    private var prevEventY = -1f
+
+    private var dx = 0f
+
+    private var dy = 0f
+
+    private var touchSlop: Int
+
+    private var minimumFlingVelocity: Int
+
+    private var maximumFlingVelocity: Int
+
+    private var velocityTracker: VelocityTracker? = null
+
+    private var direction = Direction.NONE
+
+
     init {
-        tapDetector = TapDetector(ViewConfiguration.get(context).scaledTouchSlop)
-        gestureDetector = GestureDetector(context, FlingGestureListener(this))
-        touchListener = TouchHandler(this)
+        val vc = ViewConfiguration.get(context)
+        touchSlop = vc.scaledTouchSlop
+        minimumFlingVelocity = vc.scaledMinimumFlingVelocity
+        maximumFlingVelocity = vc.scaledMaximumFlingVelocity
         swipeListener = info.swipeListener
         setupView()
     }
@@ -59,7 +76,6 @@ class Notification @JvmOverloads private constructor(
                 layoutParams as LayoutParams
             }
             lp.gravity = Gravity.CENTER
-            setOnTouchListener(touchListener)
             addView(this, lp)
         }
     }
@@ -99,12 +115,117 @@ class Notification @JvmOverloads private constructor(
             ?: false
     }
 
+    private fun resetState() {
+        isScrolling = false
+        direction = Direction.NONE
+        velocityTracker?.recycle()
+        velocityTracker = null
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         if (isBackPressed(event)) {
             dismiss()
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun onInterceptTouchEvent(event: MotionEvent?): Boolean {
+        if (isAnimating) {
+            return false
+        }
+
+        return event?.let { ev ->
+            if (velocityTracker == null) {
+                velocityTracker = VelocityTracker.obtain()
+            }
+            velocityTracker?.addMovement(ev)
+
+            when (ev.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    prevEventX = ev.rawX
+                    prevEventY = ev.rawY
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    dx = ev.rawX - prevEventX
+                    dy = ev.rawY - prevEventY
+
+                    prevEventX = ev.rawX
+                    prevEventY = ev.rawY
+
+                    if (abs(dx) > abs(dy)) {
+                        if (abs(dx) > touchSlop) {
+                            direction = if (dx < 0) {
+                                Direction.LEFT
+                            } else {
+                                Direction.RIGHT
+                            }
+                            x += dx
+
+                            isScrolling = true
+                            return false
+                        }
+                    } else {
+                        if (abs(dy) > touchSlop) {
+                            direction = if (dy < 0) {
+                                Direction.UP
+                            } else {
+                                Direction.DOWN
+                            }
+                            isScrolling = true
+                            return false
+                        }
+                    }
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    if (isScrolling) {
+                        when(direction) {
+                            Direction.LEFT -> exitToLeft()
+                            Direction.RIGHT -> exitToRight()
+                            Direction.UP -> exitToTop()
+                            else -> {}
+                        }
+                        resetState()
+                        return false
+                    }
+                    velocityTracker?.apply {
+                        computeCurrentVelocity(1000, maximumFlingVelocity.toFloat())
+                        val pointerId = ev.getPointerId(0)
+                        val vx = getXVelocity(pointerId)
+                        val vy = getYVelocity(pointerId)
+                        if (abs(vx) > minimumFlingVelocity || abs(vx) > maximumFlingVelocity) {
+                            if (vx > 0) {
+                                exitToRight()
+                            } else {
+                                exitToLeft()
+                            }
+                            resetState()
+                            return false
+                        }
+                        if (abs(vy) > minimumFlingVelocity || abs(vy) > maximumFlingVelocity) {
+                            if (vy < 0) {
+                                exitToTop()
+                                resetState()
+                                return true
+                            }
+                        }
+                    }
+                }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    if (isScrolling) {
+                        isScrolling = false
+                        direction = Direction.NONE
+                        velocityTracker?.recycle()
+                        velocityTracker = null
+                        return false
+                    }
+                }
+            }
+            super.onInterceptTouchEvent(ev)
+        } ?: false
     }
 
     fun dismiss() {
@@ -154,7 +275,7 @@ class Notification @JvmOverloads private constructor(
                 val animation = animate()
                 animation.duration = info.exitAnimationDuration
                 animation.translationX(-0.6f * width)
-                animation.alpha(0.25f)
+                animation.alpha(0.0f)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
                     dismiss()
@@ -171,7 +292,7 @@ class Notification @JvmOverloads private constructor(
                 val animation = animate()
                 animation.duration = info.exitAnimationDuration
                 animation.translationX(0.6f * width)
-                animation.alpha(0.25f)
+                animation.alpha(0.0f)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
                     dismiss()
@@ -189,7 +310,7 @@ class Notification @JvmOverloads private constructor(
                 val animation = animate()
                 animation.duration = info.exitAnimationDuration
                 animation.translationY(-0.6f * height)
-                animation.alpha(0.25f)
+                animation.alpha(0.0f)
                 animation.interpolator = AccelerateInterpolator()
                 animation.withEndAction {
                     dismiss()
@@ -236,115 +357,6 @@ class Notification @JvmOverloads private constructor(
                 throw IllegalArgumentException("ContentView was not set")
             }
             return Notification(context, info)
-        }
-    }
-
-    /**
-     * [FlingGestureListener]
-     */
-    private class FlingGestureListener(notification: Notification) :
-        GestureDetector.SimpleOnGestureListener() {
-
-        private val ref: WeakReference<Notification> = WeakReference(notification)
-
-        override fun onDown(e: MotionEvent?) = true
-
-        override fun onFling(
-            e1: MotionEvent?,
-            e2: MotionEvent?,
-            velocityX: Float,
-            velocityY: Float
-        ): Boolean {
-            val view = ref.get() ?: return false
-            var swipeDirection: Direction = if (abs(velocityX) > abs(velocityY)) {
-                if (velocityX < 0) Direction.LEFT else Direction.RIGHT
-            } else {
-                if (velocityY < 0) Direction.UP else Direction.DOWN
-            }
-            view.swipeListener?.onSwipe(swipeDirection)
-            return true
-        }
-    }
-
-    /**
-     * [TouchHandler]
-     */
-    private class TouchHandler(notification: Notification) : OnTouchListener {
-
-        private val ref: WeakReference<Notification> = WeakReference(notification)
-
-        override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-            val isTap = tapDetector()?.detect(event) ?: false
-            if (isTap) {
-                v?.performClick()
-                return true
-            }
-
-            val isFling = gestureDetector()?.onTouchEvent(event) ?: false
-            if (isFling) {
-                return true
-            }
-
-            return event?.let {
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        false
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        false
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        false
-                    }
-                    else -> false
-                }
-            } ?: false
-        }
-
-        private fun gestureDetector() = ref.get()?.gestureDetector
-
-        private fun tapDetector() = ref.get()?.tapDetector
-    }
-
-    /**
-     * [TapDetector]
-     */
-    private class TapDetector(
-        val scaledTouchSlop: Int,
-        val tapTimeout: Int = ViewConfiguration.getTapTimeout()
-    ) {
-
-        private var prevX = INVALID_POSITION
-
-        private var prevY = INVALID_POSITION
-
-        private var prevTouchTimeMillis: Long = 0
-
-        fun detect(event: MotionEvent?): Boolean {
-            return event?.let {
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        prevX = event.rawX.toInt()
-                        prevY = event.rawY.toInt()
-                        prevTouchTimeMillis = System.currentTimeMillis()
-                        false
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        if (System.currentTimeMillis() - prevTouchTimeMillis <= tapTimeout) {
-                            val dx = event.rawX.toInt() - prevX
-                            val dy = event.rawY.toInt() - prevY
-                            abs(dx) <= scaledTouchSlop && abs(dy) <= scaledTouchSlop
-                        } else {
-                            false
-                        }
-                    }
-                    else -> false
-                }
-            } ?: false
-        }
-
-        companion object {
-            const val INVALID_POSITION: Int = -1
         }
     }
 }
