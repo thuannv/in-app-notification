@@ -1,5 +1,7 @@
 package com.github.thuannv.inappnotification.sample.viewbinder
 
+import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -19,6 +21,22 @@ class BigNotificationViewBinder(private val model: BigNotificationModel) :
                     .load(model.image)
                     .override(dp(64f), dp(64f))
                     .into(this)
+            }
+            setOnClickListener { Log.e("BigNotification", "Clicked") }
+            setOnLongClickListener {
+                Log.e("BigNotification", "Long Clicked")
+                true
+            }
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_UP -> {
+                        Log.e("BigNotification", "up")
+                    }
+                    MotionEvent.ACTION_DOWN -> {
+                        Log.e("BigNotification", "down")
+                    }
+                }
+                false
             }
         }
     }

@@ -66,7 +66,10 @@ object Scheduler {
                 val contentView = context.layoutInflater().inflate(notificationViews[randomInt], FrameLayout(context), false)
                 notificationViewBinders.getOrNull(randomInt)?.bindView(contentView)
                 NotificationManager.notify(contentView)
-                task?.apply { handler.postDelayed(this, random.nextInt(5000).toLong()) }
+                task?.apply {
+//                    handler.postDelayed(this, random.nextInt(5000).toLong())
+//                    handler.postDelayed(this, 10000L)
+                }
             }
             task?.apply { handler.post(this) }
         }
