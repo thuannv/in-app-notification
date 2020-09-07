@@ -45,7 +45,7 @@ class Notification @JvmOverloads private constructor(
 
     private var dy = 0f
 
-    private var velocityX =  0f
+    private var velocityX = 0f
 
     private var velocityY = 0f
 
@@ -182,7 +182,8 @@ class Notification @JvmOverloads private constructor(
                         velocityY = getYVelocity(pointerId)
                         val vx = abs(velocityX)
                         val vy = abs(velocityY)
-                        isFling = (minimumFlingVelocity <= vx && vx <= maximumFlingVelocity) || (minimumFlingVelocity <= vy && vy <= maximumFlingVelocity)
+                        isFling =
+                            (minimumFlingVelocity <= vx && vx <= maximumFlingVelocity) || (minimumFlingVelocity <= vy && vy <= maximumFlingVelocity)
                         if (isFling) {
                             return true
                         }
@@ -205,21 +206,18 @@ class Notification @JvmOverloads private constructor(
                 MotionEvent.ACTION_MOVE -> {
                     dx = ev.rawX - prevEventX
                     dy = ev.rawY - prevEventY
-
                     prevEventX = ev.rawX
                     prevEventY = ev.rawY
 
                     if (abs(dx) > abs(dy)) {
-                        if (abs(dx) > touchSlop) {
-                            direction = if (dx < 0) {
-                                Direction.LEFT
-                            } else {
-                                Direction.RIGHT
-                            }
-                            x += dx
-                            return true
+                        direction = if (dx < 0) {
+                            Direction.LEFT
+                        } else {
+                            Direction.RIGHT
                         }
-                    } else if (abs(dy) > touchSlop) {
+                        x += dx
+                        return true
+                    } else {
                         direction = if (dy < 0) {
                             Direction.UP
                         } else {
@@ -236,7 +234,8 @@ class Notification @JvmOverloads private constructor(
                             Direction.RIGHT -> exitToRight()
                             Direction.UP -> exitToTop()
                             Direction.DOWN -> backToStart()
-                            else -> {}
+                            else -> {
+                            }
                         }
                         resetState()
                         return true
