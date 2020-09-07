@@ -25,8 +25,6 @@ class Notification @JvmOverloads private constructor(
     private val info: NotificationInfo
 ) : FrameLayout(context) {
 
-//    private val gestureDetector: GestureDetector
-
     private var isAnimating = false
 
     private var contentView: View? = null
@@ -37,6 +35,8 @@ class Notification @JvmOverloads private constructor(
 
     private var isScrolling = false
 
+    private var isFling = false
+
     private var prevEventX = -1f
 
     private var prevEventY = -1f
@@ -44,6 +44,10 @@ class Notification @JvmOverloads private constructor(
     private var dx = 0f
 
     private var dy = 0f
+
+    private var velocityX =  0f
+
+    private var velocityY = 0f
 
     private var touchSlop: Int
 
@@ -117,6 +121,9 @@ class Notification @JvmOverloads private constructor(
 
     private fun resetState() {
         isScrolling = false
+        isFling = false
+        velocityX = 0f
+        velocityY = 0f
         direction = Direction.NONE
         velocityTracker?.recycle()
         velocityTracker = null
@@ -131,11 +138,7 @@ class Notification @JvmOverloads private constructor(
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent?): Boolean {
-        if (isAnimating) {
-            return false
-        }
-
-        return event?.let { ev ->
+        return isAnimating || event?.let { ev ->
             if (velocityTracker == null) {
                 velocityTracker = VelocityTracker.obtain()
             }
@@ -146,6 +149,58 @@ class Notification @JvmOverloads private constructor(
                     prevEventX = ev.rawX
                     prevEventY = ev.rawY
                 }
+
+                MotionEvent.ACTION_MOVE -> {
+                    if (isScrolling) {
+                        return true
+                    }
+
+                    dx = ev.rawX - prevEventX
+                    dy = ev.rawY - prevEventY
+                    prevEventX = ev.rawX
+                    prevEventY = ev.rawY
+                    if (abs(dx) > abs(dy)) {
+                        if (abs(dx) > touchSlop) {
+                            isScrolling = true
+                            return true
+                        }
+                    } else if (abs(dy) > touchSlop) {
+                        isScrolling = true
+                        return true
+                    }
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    if (isScrolling) {
+                        return true
+                    }
+
+                    velocityTracker?.apply {
+                        val pointerId = ev.getPointerId(0)
+                        computeCurrentVelocity(1000, maximumFlingVelocity.toFloat())
+                        velocityX = getXVelocity(pointerId)
+                        velocityY = getYVelocity(pointerId)
+                        val vx = abs(velocityX)
+                        val vy = abs(velocityY)
+                        isFling = (minimumFlingVelocity <= vx && vx <= maximumFlingVelocity) || (minimumFlingVelocity <= vy && vy <= maximumFlingVelocity)
+                        if (isFling) {
+                            return true
+                        }
+                    }
+                }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    resetState()
+                    return false
+                }
+            }
+            false
+        } ?: false
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        return isAnimating || event?.let { ev ->
+            when (ev.action) {
 
                 MotionEvent.ACTION_MOVE -> {
                     dx = ev.rawX - prevEventX
@@ -162,26 +217,21 @@ class Notification @JvmOverloads private constructor(
                                 Direction.RIGHT
                             }
                             x += dx
-
-                            isScrolling = true
-                            return false
+                            return true
                         }
-                    } else {
-                        if (abs(dy) > touchSlop) {
-                            direction = if (dy < 0) {
-                                Direction.UP
-                            } else {
-                                Direction.DOWN
-                            }
-                            isScrolling = true
-                            return false
+                    } else if (abs(dy) > touchSlop) {
+                        direction = if (dy < 0) {
+                            Direction.UP
+                        } else {
+                            Direction.DOWN
                         }
+                        return true
                     }
                 }
 
                 MotionEvent.ACTION_UP -> {
                     if (isScrolling) {
-                        when(direction) {
+                        when (direction) {
                             Direction.LEFT -> exitToLeft()
                             Direction.RIGHT -> exitToRight()
                             Direction.UP -> exitToTop()
@@ -189,43 +239,37 @@ class Notification @JvmOverloads private constructor(
                             else -> {}
                         }
                         resetState()
-                        return false
-                    }
-                    velocityTracker?.apply {
-                        computeCurrentVelocity(1000, maximumFlingVelocity.toFloat())
-                        val pointerId = ev.getPointerId(0)
-                        val vx = getXVelocity(pointerId)
-                        val vy = getYVelocity(pointerId)
-                        if (abs(vx) > minimumFlingVelocity || abs(vx) > maximumFlingVelocity) {
-                            if (vx > 0) {
+                        return true
+                    } else if (isFling) {
+                        val vx = abs(velocityX)
+                        val vy = abs(velocityY)
+                        if (vx > vy) {
+                            if (velocityX > 0) {
                                 exitToRight()
                             } else {
                                 exitToLeft()
                             }
                             resetState()
-                            return false
-                        }
-                        if (abs(vy) > minimumFlingVelocity || abs(vy) > maximumFlingVelocity) {
+                            return true
+                        } else if (minimumFlingVelocity <= vy && vy <= maximumFlingVelocity) {
                             if (vy < 0) {
                                 exitToTop()
                                 resetState()
                                 return true
                             }
+                            resetState()
                         }
                     }
                 }
 
                 MotionEvent.ACTION_CANCEL -> {
                     if (isScrolling) {
-                        isScrolling = false
-                        direction = Direction.NONE
-                        velocityTracker?.recycle()
-                        velocityTracker = null
-                        return false
+                        resetState()
+                        return true
                     }
                 }
             }
-            super.onInterceptTouchEvent(ev)
+            false
         } ?: false
     }
 

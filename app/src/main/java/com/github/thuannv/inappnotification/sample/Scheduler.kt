@@ -67,8 +67,7 @@ object Scheduler {
                 notificationViewBinders.getOrNull(randomInt)?.bindView(contentView)
                 NotificationManager.notify(contentView)
                 task?.apply {
-//                    handler.postDelayed(this, random.nextInt(5000).toLong())
-//                    handler.postDelayed(this, 10000L)
+                    handler.postDelayed(this, random.nextInt(5000).toLong())
                 }
             }
             task?.apply { handler.post(this) }
