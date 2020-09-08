@@ -1,4 +1,4 @@
-package com.github.thuannv.inappnotification
+package com.github.thuannv.inappnotification.sample
 
 import android.app.Activity
 import android.app.Application
@@ -7,6 +7,9 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
+import com.github.thuannv.inappnotification.Direction
+import com.github.thuannv.inappnotification.Notification
+import com.github.thuannv.inappnotification.SwipeListener
 import com.github.thuannv.inappnotification.utils.ActivityLifecycleCallbacksAdapter
 import com.github.thuannv.inappnotification.utils.Once
 import com.github.thuannv.inappnotification.utils.actionBarHeight

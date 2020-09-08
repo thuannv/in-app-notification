@@ -3,7 +3,6 @@ package com.github.thuannv.inappnotification.sample
 import android.content.Context
 import android.os.Handler
 import android.widget.FrameLayout
-import com.github.thuannv.inappnotification.NotificationManager
 import com.github.thuannv.inappnotification.sample.model.NormalNotificationModel
 import com.github.thuannv.inappnotification.sample.model.BigNotificationModel
 import com.github.thuannv.inappnotification.sample.model.NotificationWithTimeModel

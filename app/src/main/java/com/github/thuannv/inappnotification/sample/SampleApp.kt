@@ -1,7 +1,6 @@
 package com.github.thuannv.inappnotification.sample
 
 import android.app.Application
-import com.github.thuannv.inappnotification.NotificationManager
 
 class SampleApp: Application() {
 
