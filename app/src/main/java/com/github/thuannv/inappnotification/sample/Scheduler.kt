@@ -3,12 +3,14 @@ package com.github.thuannv.inappnotification.sample
 import android.content.Context
 import android.os.Handler
 import android.widget.FrameLayout
+import com.github.thuannv.inappnotification.NotificationManager
 import com.github.thuannv.inappnotification.sample.model.NormalNotificationModel
 import com.github.thuannv.inappnotification.sample.model.BigNotificationModel
 import com.github.thuannv.inappnotification.sample.model.NotificationWithTimeModel
 import com.github.thuannv.inappnotification.sample.viewbinder.BigNotificationViewBinder
 import com.github.thuannv.inappnotification.sample.viewbinder.NormalNotificationViewBinder
 import com.github.thuannv.inappnotification.sample.viewbinder.NotificationWithTimeViewBinder
+import com.github.thuannv.inappnotification.utils.Once
 import com.github.thuannv.inappnotification.utils.layoutInflater
 import java.util.*
 

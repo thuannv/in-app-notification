@@ -1,4 +1,4 @@
-package com.github.thuannv.inappnotification.sample
+package com.github.thuannv.inappnotification
 
 import android.app.Activity
 import android.app.Application
@@ -7,24 +7,11 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
-import com.github.thuannv.inappnotification.Direction
-import com.github.thuannv.inappnotification.Notification
-import com.github.thuannv.inappnotification.SwipeListener
 import com.github.thuannv.inappnotification.utils.ActivityLifecycleCallbacksAdapter
+import com.github.thuannv.inappnotification.utils.Once
 import com.github.thuannv.inappnotification.utils.actionBarHeight
 import com.github.thuannv.inappnotification.utils.statusBarHeight
 import java.lang.ref.WeakReference
-import java.util.concurrent.atomic.AtomicBoolean
-
-class Once {
-    private val isExecuted = AtomicBoolean(false)
-    fun execute(block: () -> Unit) {
-        if (isExecuted.compareAndSet(false, true)) {
-            return block()
-        }
-    }
-}
-
 
 object NotificationManager {
 
