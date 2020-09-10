@@ -4,9 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
-import android.view.View
-import android.view.ViewGroup
-import androidx.annotation.LayoutRes
 import com.github.thuannv.inappnotification.Direction
 import com.github.thuannv.inappnotification.Notification
 import com.github.thuannv.inappnotification.SwipeListener
@@ -16,13 +13,15 @@ import com.github.thuannv.inappnotification.utils.actionBarHeight
 import com.github.thuannv.inappnotification.utils.statusBarHeight
 import java.lang.ref.WeakReference
 
-object NotificationManager {
+object InAppNotificationManager {
 
     private var activityRef: WeakReference<Activity>? = null
 
     private var notification: Notification? = null
 
     private val uiHandler = Handler(Looper.getMainLooper())
+
+    private val AUTO_DISMISS_TASK = Runnable { dismissWithAnimationToTop() }
 
     private val once = Once()
 
@@ -44,11 +43,15 @@ object NotificationManager {
         notification = null
     }
 
-    private fun notifyInternal(contentView: View?) {
-        val activity = activityRef?.get()
-        if (activity == null || activity.isFinishing) {
+    private fun notifyInternal(info: InAppNotificationInfo) {
+        val contentView = info.getView() ?: return
+        val activity = activityRef?.get() ?: return
+        if (activity.isFinishing) {
             return
         }
+
+        cancelAutoDismiss()
+
         dismissInternal()
 
         notification = Notification.Builder(activity)
@@ -65,6 +68,10 @@ object NotificationManager {
             .build()
 
         notification?.show()
+
+        if (info.autoDismiss) {
+            uiHandler.postDelayed(AUTO_DISMISS_TASK, info.autoDismissMillis)
+        }
     }
 
     private fun dismissInternal() {
@@ -91,26 +98,8 @@ object NotificationManager {
     }
 
     @JvmStatic
-    fun notify(@LayoutRes layoutResId: Int = 0) {
-        if (layoutResId == 0) {
-            return
-        }
-        activityRef?.get()?.apply {
-            val contentView = layoutInflater.inflate(
-                layoutResId,
-                window.decorView as ViewGroup,
-                false
-            )
-            notify(contentView)
-        }
-    }
-
-    @JvmStatic
-    fun notify(contentView: View?) {
-        if (contentView == null) {
-            return
-        }
-        uiHandler.post { notifyInternal(contentView) }
+    fun notify(info: InAppNotificationInfo?) {
+        info?.getView()?.apply { uiHandler.post { notifyInternal(info) } }
     }
 
     @JvmStatic
@@ -124,9 +113,16 @@ object NotificationManager {
             Direction.LEFT -> dismissWithAnimationToLeft()
             Direction.RIGHT -> dismissWithAnimationToRight()
             Direction.UP -> dismissWithAnimationToTop()
+            else -> {
+            }
         }
     }
 
     @JvmStatic
     fun current() = notification
+
+    @JvmStatic
+    fun cancelAutoDismiss() {
+        uiHandler.removeCallbacks(AUTO_DISMISS_TASK)
+    }
 }

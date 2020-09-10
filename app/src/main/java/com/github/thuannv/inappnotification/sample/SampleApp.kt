@@ -6,7 +6,7 @@ class SampleApp: Application() {
 
     override fun onCreate() {
         super.onCreate()
-        NotificationManager.init(this)
+        InAppNotificationManager.init(this)
         Scheduler.schedule(applicationContext)
     }
 }
