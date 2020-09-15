@@ -3,6 +3,10 @@
 # In-app Notification 
 Library for showing in-app notification in any activity. This library helps you overcome the requirement of show in drop down notification when user is using app since you might have to maintain the legacy application architecture, which is not a single Activity app as well as you do not want to ask your user permission `android.permission.SYSTEM_ALERT_WINDOW`.
 
+## Demo
+![in_app_notification_demo.gif](assets/in_app_notification_demo.gif)
+
+
 ## Getting started
 Add it in your root `build.gradle` at the end of repositories:
 ```gradle
